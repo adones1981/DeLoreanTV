@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeLorean TV - Televisión y Radio en Vivo</title>
+  <style>
+    :root {
+      --tv-bezel: #18181b;
+      --tv-frame: #09090b;
+      --led-on: #22c55e;
+      --led-off: #ef4444;
+      --accent-cyan: #06b6d4;
+      --accent-pink: #ec4899;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      padding: 20px;
+      color: #f8fafc;
+      transition: background 0.8s ease;
+    }
+
+    /* MODO NOCHE: Living con iluminación ambiental neón detrás del TV */
+    body.night-mode {
+      background: 
+        radial-gradient(circle at 50% 40%, rgba(6, 182, 212, 0.24) 0%, rgba(236, 72, 153, 0.12) 35%, rgba(9, 13, 24, 0.92) 70%),
+        url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed;
+    }
+
+    /* MODO DÍA: Living iluminado con luz natural cálida */
+    body.day-mode {
+      background: 
+        radial-gradient(circle at 50% 35%, rgba(255, 251, 235, 0.22) 0%, rgba(30, 41, 59, 0.48) 75%),
+        url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed;
+    }
+
+    /* Barra superior flotante */
+    .top-bar {
+      position: fixed;
+      top: 16px;
+      left: 24px;
+      right: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .header-brand, .theme-toggle {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(9, 9, 11, 0.82);
+      backdrop-filter: blur(10px);
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #f8fafc;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .brand-title {
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #22d3ee, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      font-size: 1rem;
+    }
+
+    .theme-toggle {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.88rem;
+      transition: all 0.25s ease;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent-cyan);
+      transform: translateY(-1px);
+    }
+
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      background: #ef4444;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #ef4444;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    .tv-wrapper {
+      width: 100%;
+      max-width: 920px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 32px;
+    }
+
+    /* Chasis Televisor LCD */
+    .tv-chassis {
+      width: 100%;
+      background: linear-gradient(145deg, #27272a, #09090b);
+      padding: 18px 18px 26px 18px;
+      border-radius: 16px;
+      border: 2px solid #27272a;
+      position: relative;
+      transition: box-shadow 0.8s ease;
+    }
+
+    body.night-mode .tv-chassis {
+      box-shadow: 
+        0 25px 60px rgba(0, 0, 0, 0.90),
+        0 0 85px rgba(6, 182, 212, 0.22),
+        0 0 40px rgba(236, 72, 153, 0.14),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    }
+
+    body.day-mode .tv-chassis {
+      box-shadow: 
+        0 22px 45px rgba(0, 0, 0, 0.55),
+        inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    }
+
+    /* Pantalla 16:9 */
+    .tv-screen {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
+    }
+
+    body.day-mode .tv-screen::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(125deg, rgba(255, 255, 255, 0.07) 0%, transparent 45%);
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .tv-screen iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .tv-off-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle, #18181b 0%, #000000 100%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: #52525b;
+      z-index: 5;
+    }
+
+    .tv-off-overlay.active {
+      display: flex;
+    }
+
+    /* OSD (Banner de canal en esquina superior derecha) */
+    .tv-osd {
+      position: absolute;
+      top: 18px;
+      right: 22px;
+      background: rgba(9, 9, 11, 0.9);
+      border-left: 4px solid var(--accent-cyan);
+      padding: 10px 18px;
+      border-radius: 6px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+      z-index: 6;
+    }
+
+    .tv-osd.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .osd-ch-num {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+    }
+
+    .osd-ch-name {
+      font-size: 0.95rem;
+      color: #e4e4e7;
+    }
+
+    /* Barra inferior del marco LCD */
+    .tv-bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      padding: 0 10px;
+    }
+
+    .tv-brand-logo {
+      font-size: 0.85rem;
+      letter-spacing: 4px;
+      font-weight: 800;
+      color: #a1a1aa;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(6, 182, 212, 0.35);
+    }
+
+    .tv-status-led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--led-on);
+      box-shadow: 0 0 8px var(--led-on);
+      transition: 0.3s;
+    }
+
+    .tv-status-led.off {
+      background: var(--led-off);
+      box-shadow: 0 0 8px var(--led-off);
+    }
+
+    /* Pedestal del TV sobre el mueble */
+    .tv-stand-neck {
+      width: 110px;
+      height: 36px;
+      background: linear-gradient(90deg, #18181b, #3f3f46, #18181b);
+      box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.6);
+    }
+
+    .tv-stand-base {
+      width: 320px;
+      height: 14px;
+      background: linear-gradient(180deg, #3f3f46, #18181b);
+      border-radius: 6px 6px 2px 2px;
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.85);
+    }
+
+    /* Control Remoto / Zapping Panel */
+    .remote-panel {
+      margin-top: 22px;
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 16px;
+      padding: 16px 22px;
+      width: 100%;
+      max-width: 920px;
+      transition: background 0.8s ease, box-shadow 0.8s ease;
+    }
+
+    body.night-mode .remote-panel {
+      background: rgba(15, 23, 42, 0.86);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.65);
+    }
+
+    body.day-mode .remote-panel {
+      background: rgba(24, 24, 27, 0.82);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .remote-controls-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-power {
+      background: #dc2626;
+      color: white;
+    }
+    .btn-power:hover { background: #b91c1c; }
+
+    .btn-nav {
+      background: #27272a;
+      color: #f4f4f5;
+      border: 1px solid #3f3f46;
+    }
+    .btn-nav:hover {
+      background: #3f3f46;
+      border-color: var(--accent-cyan);
+    }
+
+    /* Grilla de canales */
+    .channel-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+      gap: 10px;
+    }
+
+    .ch-btn {
+      background: rgba(39, 39, 42, 0.85);
+      color: #e4e4e7;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px 12px;
+      text-align: left;
+      justify-content: flex-start;
+      border-radius: 10px;
+    }
+
+    .ch-btn:hover {
+      background: rgba(63, 63, 70, 0.95);
+      transform: translateY(-2px);
+    }
+
+    .ch-btn.active {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.24), rgba(236, 72, 153, 0.16));
+      border-color: var(--accent-cyan);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+    }
+
+    .ch-badge {
+      background: #09090b;
+      color: var(--accent-cyan);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .ch-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.86rem;
+    }
+
+    .ch-tag {
+      font-size: 0.66rem;
+      color: #94a3b8;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 640px) {
+      .tv-chassis { padding: 10px 10px 18px 10px; }
+      .tv-stand-base { width: 200px; }
+      .top-bar { position: static; margin-bottom: 10px; width: 100%; }
+      .tv-wrapper { margin-top: 8px; }
+    }
+  </style>
+</head>
+<body class="night-mode">
+
+  <div class="top-bar">
+    <div class="header-brand">
+      <span class="live-dot"></span>
+      <span class="brand-title">DeLorean TV</span>
+    </div>
+
+    <button class="theme-toggle" id="themeToggleBtn" onclick="toggleLivingTheme()">
+      ☀️ Modo Día
+    </button>
+  </div>
+
+  <div class="tv-wrapper">
+    <div class="tv-chassis">
+      <div class="tv-screen">
+        <div class="tv-osd" id="tvOsd">
+          <div class="osd-ch-num" id="osdNum">CH 01</div>
+          <div class="osd-ch-name" id="osdName">Cargando...</div>
+        </div>
+
+        <div class="tv-off-overlay" id="tvOffOverlay">
+          <p style="letter-spacing: 2px; font-size: 0.9rem;">SIN SEÑAL / TV APAGADO</p>
+        </div>
+
+        <iframe 
+          id="tvPlayer"
+          src="" 
+          title="DeLorean TV Player"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+          allowfullscreen>
+        </iframe>
+      </div>
+
+      <div class="tv-bottom-bar">
+        <div style="width: 20px;"></div>
+        <div class="tv-brand-logo">DELOREAN TV</div>
+        <div class="tv-status-led" id="tvLed" title="Estado de energía"></div>
+      </div>
+    </div>
+
+    <div class="tv-stand-neck"></div>
+    <div class="tv-stand-base"></div>
+  </div>
+
+  <div class="remote-panel">
+    <div class="remote-controls-top">
+      <div class="btn-group">
+        <button class="btn-power" onclick="togglePower()">⏻ Power</button>
+        <button class="btn-nav" onclick="prevChannel()">◀ CH -</button>
+        <button class="btn-nav" onclick="nextChannel()">CH + ▶</button>
+      </div>
+      <div style="font-size: 0.85rem; color: #94a3b8;" id="currentStatusText">
+        Sintonizando...
+      </div>
+    </div>
+
+    <div class="channel-grid" id="channelGrid"></div>
+  </div>
+
+  <script>
+    /**
+     * GRILLA DELOREAN TV (Señales 1, 2, 3 y 4 por cadena)
+     */
+    const channels = [
+      // TVN (3 Señales)
+      { num: "01", name: "TVN Señal 1", type: "TV", channelId: "UCaVaCaiG6qRzDiJDuEGKOhQ" },
+      { num: "02", name: "TVN Señal 2 (24H)", type: "Noticias", channelId: "UCTXNz3gjAypWp3EhlIATEJQ" },
+      { num: "03", name: "TVN Señal 3 (NTV)", type: "Cultural", channelId: "UC3L3i9f_H6h-e9hQ0wK7P1w" },
+
+      // MEGA (3 Señales)
+      { num: "04", name: "Mega Señal 1", type: "TV", channelId: "UCEpId-QgFQuZySRWyokok4Q" },
+      { num: "05", name: "Mega Señal 2 (Noticias)", type: "Noticias", channelId: "UCkccyEbqhhM3uKOI6Shm-4Q" },
+      { num: "06", name: "Mega Señal 3 (Mega 2)", type: "Entret.", channelId: "UCw5v2yQ8A6zP-h9X0s3gQ2A" },
+
+      // CANAL 13 (4 Señales)
+      { num: "07", name: "Canal 13 Señal 1", type: "TV", channelId: "UCd4D3LfXC_9MY2zSv_3gMgw" },
+      { num: "08", name: "Canal 13 Señal 2 (T13)", type: "Noticias", channelId: "UCsRnhjcUCR78Q3Ud6OXCTNg" },
+      { num: "09", name: "Canal 13 Señal 3 (13C)", type: "Cultura", channelId: "UC62f30f2C9s9tB7n6oX5k6w" },
+      { num: "10", name: "Canal 13 Señal 4 (REC)", type: "Retro", channelId: "UCu4X7l2S9K5w5z_n_7p2jQg" },
+
+      // CHILEVISIÓN (2 Señales)
+      { num: "11", name: "Chilevisión Señal 1", type: "TV", channelId: "UC8EdTmyUaFIfZvVttJ9lgIA" },
+      { num: "12", name: "CHV Señal 2 (Noticias)", type: "Noticias", channelId: "UCRsUoZYC1ULUspipMRnMhwg" },
+
+      // RADIOS EN VIVO (4 Señales)
+      { num: "13", name: "BioBioTV", type: "Radio/TV", channelId: "UCuvM3c8rmdApmk-g22shZ7w" },
+      { num: "14", name: "Cooperativa", type: "Radio", channelId: "UC13uQa4Eh2fKW2DuwGP25CA" },
+      { num: "15", name: "ADN Radio", type: "Radio", channelId: "UCczkrBxg0bf6PyW103d9s-w" },
+      { num: "16", name: "Radio Carolina", type: "Radio", channelId: "UC24i8V4w1t2V0h1w9C_G0jQ" }
+    ];
+
+    let currentIndex = 0;
+    let isTvOn = true;
+    let isDayMode = false;
+    let osdTimeout;
+
+    const player = document.getElementById("tvPlayer");
+    const grid = document.getElementById("channelGrid");
+    const osd = document.getElementById("tvOsd");
+    const osdNum = document.getElementById("osdNum");
+    const osdName = document.getElementById("osdName");
+    const statusText = document.getElementById("currentStatusText");
+    const offOverlay = document.getElementById("tvOffOverlay");
+    const tvLed = document.getElementById("tvLed");
+    const themeBtn = document.getElementById("themeToggleBtn");
+
+    function initThemeByTime() {
+      const hour = new Date().getHours();
+      isDayMode = hour >= 7 && hour < 20;
+      applyTheme();
+    }
+
+    function applyTheme() {
+      if (isDayMode) {
+        document.body.classList.remove("night-mode");
+        document.body.classList.add("day-mode");
+        themeBtn.innerHTML = "🌙 Modo Noche";
+      } else {
+        document.body.classList.remove("day-mode");
+        document.body.classList.add("night-mode");
+        themeBtn.innerHTML = "☀️ Modo Día";
+      }
+    }
+
+    function toggleLivingTheme() {
+      isDayMode = !isDayMode;
+      applyTheme();
+    }
+
+    function renderButtons() {
+      grid.innerHTML = "";
+      channels.forEach((ch, index) => {
+        const btn = document.createElement("button");
+        btn.className = `ch-btn ${index === currentIndex && isTvOn ? "active" : ""}`;
+        btn.innerHTML = `
+          <span class="ch-badge">${ch.num}</span>
+          <span class="ch-name" title="${ch.name}">${ch.name}</span>
+          <span class="ch-tag">${ch.type}</span>
+        `;
+        btn.onclick = () => selectChannel(index);
+        grid.appendChild(btn);
+      });
+    }
+
+    function showOSD(ch) {
+      osdNum.textContent = `CH ${ch.num}`;
+      osdName.textContent = ch.name;
+      osd.classList.add("show");
+      clearTimeout(osdTimeout);
+      osdTimeout = setTimeout(() => {
+        osd.classList.remove("show");
+      }, 3500);
+    }
+
+    function selectChannel(index) {
+      if (!isTvOn) {
+        isTvOn = true;
+        offOverlay.classList.remove("active");
+        tvLed.classList.remove("off");
+      }
+
+      currentIndex = index;
+      const ch = channels[currentIndex];
+      
+      if (ch.videoId) {
+        player.src = `https://www.youtube.com/embed/${ch.videoId}?autoplay=1&rel=0&modestbranding=1`;
+      } else {
+        player.src = `https://www.youtube.com/embed/live_stream?channel=${ch.channelId}&autoplay=1&rel=0&modestbranding=1`;
+      }
+
+      statusText.textContent = `Viendo: CH ${ch.num} - ${ch.name}`;
+      showOSD(ch);
+      renderButtons();
+    }
+
+    function nextChannel() {
+      const next = (currentIndex + 1) % channels.length;
+      selectChannel(next);
+    }
+
+    function prevChannel() {
+      const prev = (currentIndex - 1 + channels.length) % channels.length;
+      selectChannel(prev);
+    }
+
+    function togglePower() {
+      isTvOn = !isTvOn;
+      if (isTvOn) {
+        offOverlay.classList.remove("active");
+        tvLed.classList.remove("off");
+        selectChannel(currentIndex);
+      } else {
+        player.src = "";
+        offOverlay.classList.add("active");
+        tvLed.classList.add("off");
+        osd.classList.remove("show");
+        statusText.textContent = "TV Apagado";
+        renderButtons();
+      }
+    }
+
+    // Zapping con flechas del teclado
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowUp") nextChannel();
+      if (e.key === "ArrowLeft" || e.key === "ArrowDown") prevChannel();
+    });
+
+    initThemeByTime();
+    selectChannel(0);
+  </script>
+</body>
+</html>
