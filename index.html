@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DeLorean TV - Televisión y Radio en Vivo</title>
+  <title>DeLorean TV - En Vivo</title>
   <style>
     :root {
       --tv-bezel: #18181b;
@@ -12,6 +12,7 @@
       --led-off: #ef4444;
       --accent-cyan: #06b6d4;
       --accent-pink: #ec4899;
+      --tv-width: 780px;
     }
 
     * {
@@ -25,53 +26,48 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       overflow-x: hidden;
-      padding: 20px;
+      padding: 12px 20px;
       color: #f8fafc;
       transition: background 0.8s ease;
     }
 
-    /* MODO NOCHE: Living con iluminación ambiental neón detrás del TV */
+    /* MODO NOCHE */
     body.night-mode {
       background: 
-        radial-gradient(circle at 50% 40%, rgba(6, 182, 212, 0.24) 0%, rgba(236, 72, 153, 0.12) 35%, rgba(9, 13, 24, 0.92) 70%),
+        radial-gradient(circle at 38% 48%, rgba(6, 182, 212, 0.24) 0%, rgba(236, 72, 153, 0.12) 38%, rgba(9, 13, 24, 0.92) 72%),
         url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed;
     }
 
-    /* MODO DÍA: Living iluminado con luz natural cálida */
+    /* MODO DÍA */
     body.day-mode {
       background: 
-        radial-gradient(circle at 50% 35%, rgba(255, 251, 235, 0.22) 0%, rgba(30, 41, 59, 0.48) 75%),
+        radial-gradient(circle at 38% 45%, rgba(255, 251, 235, 0.22) 0%, rgba(30, 41, 59, 0.48) 75%),
         url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed;
     }
 
-    /* Barra superior flotante */
+    /* Barra superior compacta */
     .top-bar {
-      position: fixed;
-      top: 16px;
-      left: 24px;
-      right: 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      width: 100%;
+      margin-bottom: 8px;
       z-index: 20;
-      pointer-events: none;
     }
 
     .header-brand, .theme-toggle {
-      pointer-events: auto;
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(9, 9, 11, 0.82);
+      background: rgba(9, 9, 11, 0.84);
       backdrop-filter: blur(10px);
-      padding: 8px 18px;
+      padding: 6px 16px;
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.14);
       color: #f8fafc;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
     }
 
     .brand-title {
@@ -81,24 +77,23 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-transform: uppercase;
-      font-size: 1rem;
+      font-size: 0.95rem;
     }
 
     .theme-toggle {
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.88rem;
-      transition: all 0.25s ease;
+      font-size: 0.82rem;
+      transition: all 0.2s ease;
     }
 
     .theme-toggle:hover {
       border-color: var(--accent-cyan);
-      transform: translateY(-1px);
     }
 
     .live-dot {
-      width: 10px;
-      height: 10px;
+      width: 9px;
+      height: 9px;
       background: #ef4444;
       border-radius: 50%;
       box-shadow: 0 0 10px #ef4444;
@@ -110,21 +105,35 @@
       50% { opacity: 0.35; }
     }
 
-    .tv-wrapper {
+    /* CONTENEDOR PRINCIPAL: TV a la izquierda + Control a la derecha (sin scroll) */
+    .living-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
       width: 100%;
-      max-width: 920px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    /* Zona del Televisor Redimensionable */
+    .tv-wrapper {
+      width: var(--tv-width);
+      max-width: 100%;
+      min-width: 340px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-top: 32px;
+      transition: width 0.15s ease-out;
     }
 
     /* Chasis Televisor LCD */
     .tv-chassis {
       width: 100%;
       background: linear-gradient(145deg, #27272a, #09090b);
-      padding: 18px 18px 26px 18px;
-      border-radius: 16px;
+      padding: 14px 14px 20px 14px;
+      border-radius: 14px;
       border: 2px solid #27272a;
       position: relative;
       transition: box-shadow 0.8s ease;
@@ -132,16 +141,37 @@
 
     body.night-mode .tv-chassis {
       box-shadow: 
-        0 25px 60px rgba(0, 0, 0, 0.90),
-        0 0 85px rgba(6, 182, 212, 0.22),
-        0 0 40px rgba(236, 72, 153, 0.14),
+        0 20px 55px rgba(0, 0, 0, 0.90),
+        0 0 80px rgba(6, 182, 212, 0.22),
+        0 0 35px rgba(236, 72, 153, 0.14),
         inset 0 1px 1px rgba(255, 255, 255, 0.15);
     }
 
     body.day-mode .tv-chassis {
       box-shadow: 
-        0 22px 45px rgba(0, 0, 0, 0.55),
+        0 18px 40px rgba(0, 0, 0, 0.55),
         inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    }
+
+    /* Tirador de esquina para agrandar/achicar arrastrando */
+    .resize-handle {
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      width: 18px;
+      height: 18px;
+      cursor: nwse-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #71717a;
+      font-size: 12px;
+      user-select: none;
+      z-index: 15;
+    }
+
+    .resize-handle:hover {
+      color: var(--accent-cyan);
     }
 
     /* Pantalla 16:9 */
@@ -159,7 +189,7 @@
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(125deg, rgba(255, 255, 255, 0.07) 0%, transparent 45%);
+      background: linear-gradient(125deg, rgba(255, 255, 255, 0.06) 0%, transparent 45%);
       pointer-events: none;
       z-index: 4;
     }
@@ -187,18 +217,18 @@
       display: flex;
     }
 
-    /* OSD (Banner de canal en esquina superior derecha) */
+    /* OSD Banner */
     .tv-osd {
       position: absolute;
-      top: 18px;
-      right: 22px;
+      top: 14px;
+      right: 16px;
       background: rgba(9, 9, 11, 0.9);
       border-left: 4px solid var(--accent-cyan);
-      padding: 10px 18px;
+      padding: 8px 14px;
       border-radius: 6px;
       pointer-events: none;
       opacity: 0;
-      transform: translateY(-10px);
+      transform: translateY(-8px);
       transition: all 0.3s ease;
       z-index: 6;
     }
@@ -209,13 +239,13 @@
     }
 
     .osd-ch-num {
-      font-size: 1.35rem;
+      font-size: 1.15rem;
       font-weight: 800;
       color: var(--accent-cyan);
     }
 
     .osd-ch-name {
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       color: #e4e4e7;
     }
 
@@ -224,12 +254,12 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 12px;
+      margin-top: 10px;
       padding: 0 10px;
     }
 
     .tv-brand-logo {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       letter-spacing: 4px;
       font-weight: 800;
       color: #a1a1aa;
@@ -251,72 +281,65 @@
       box-shadow: 0 0 8px var(--led-off);
     }
 
-    /* Pedestal del TV sobre el mueble */
+    /* Pedestal compacto */
     .tv-stand-neck {
-      width: 110px;
-      height: 36px;
+      width: 90px;
+      height: 24px;
       background: linear-gradient(90deg, #18181b, #3f3f46, #18181b);
-      box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.6);
     }
 
     .tv-stand-base {
-      width: 320px;
-      height: 14px;
+      width: 240px;
+      height: 10px;
       background: linear-gradient(180deg, #3f3f46, #18181b);
       border-radius: 6px 6px 2px 2px;
-      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.85);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.85);
     }
 
-    /* Control Remoto / Zapping Panel */
+    /* CONTROL REMOTO LATERAL COMPACTO (Siempre visible sin hacer scroll) */
     .remote-panel {
-      margin-top: 22px;
-      backdrop-filter: blur(14px);
+      width: 360px;
+      flex-shrink: 0;
+      backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 16px;
-      padding: 16px 22px;
-      width: 100%;
-      max-width: 920px;
-      transition: background 0.8s ease, box-shadow 0.8s ease;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: calc(100vh - 70px);
+      transition: background 0.8s ease;
     }
 
     body.night-mode .remote-panel {
-      background: rgba(15, 23, 42, 0.86);
+      background: rgba(15, 23, 42, 0.88);
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.65);
     }
 
     body.day-mode .remote-panel {
-      background: rgba(24, 24, 27, 0.82);
+      background: rgba(24, 24, 27, 0.85);
       box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
     }
 
-    .remote-controls-top {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .btn-group {
-      display: flex;
-      gap: 8px;
-      align-items: center;
+    /* Fila superior del control: Power + Zapping + Pantalla Completa */
+    .remote-top-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 6px;
     }
 
     button {
       cursor: pointer;
       border: none;
       border-radius: 8px;
-      padding: 10px 16px;
+      padding: 8px 10px;
       font-weight: 600;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       transition: all 0.2s ease;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      gap: 5px;
     }
 
     .btn-power {
@@ -335,41 +358,104 @@
       border-color: var(--accent-cyan);
     }
 
-    /* Grilla de canales */
+    /* Botón de sonido (para quitar el mute inicial del navegador) */
+    .btn-unmute {
+      background: linear-gradient(90deg, #0891b2, #0284c7);
+      color: #fff;
+      width: 100%;
+      padding: 8px;
+      font-size: 0.82rem;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .btn-unmute.unmuted {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: #22c55e;
+      color: #86efac;
+    }
+
+    /* Control deslizante para agrandar/achicar TV */
+    .size-control-box {
+      background: rgba(9, 9, 11, 0.55);
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .size-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #cbd5e1;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+
+    .now-playing-bar {
+      font-size: 0.78rem;
+      color: #38bdf8;
+      text-align: center;
+      background: rgba(6, 182, 212, 0.1);
+      padding: 5px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Grilla compacta de 2 columnas dentro del control lateral */
     .channel-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
-      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    /* Scrollbar sutil solo dentro de la botonera si hay muchos canales */
+    .channel-grid::-webkit-scrollbar {
+      width: 4px;
+    }
+    .channel-grid::-webkit-scrollbar-thumb {
+      background: #3f3f46;
+      border-radius: 4px;
     }
 
     .ch-btn {
-      background: rgba(39, 39, 42, 0.85);
+      background: rgba(39, 39, 42, 0.88);
       color: #e4e4e7;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 10px 12px;
+      padding: 7px 8px;
       text-align: left;
       justify-content: flex-start;
-      border-radius: 10px;
+      border-radius: 8px;
+      gap: 6px;
     }
 
     .ch-btn:hover {
-      background: rgba(63, 63, 70, 0.95);
-      transform: translateY(-2px);
+      background: rgba(63, 63, 70, 0.98);
+      border-color: rgba(6, 182, 212, 0.5);
     }
 
     .ch-btn.active {
-      background: linear-gradient(135deg, rgba(6, 182, 212, 0.24), rgba(236, 72, 153, 0.16));
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.28), rgba(236, 72, 153, 0.18));
       border-color: var(--accent-cyan);
       color: #fff;
-      box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.25);
     }
 
     .ch-badge {
       background: #09090b;
       color: var(--accent-cyan);
-      padding: 2px 7px;
-      border-radius: 5px;
-      font-size: 0.78rem;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 0.72rem;
       font-weight: 700;
       flex-shrink: 0;
     }
@@ -378,21 +464,22 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      font-size: 0.86rem;
+      font-size: 0.76rem;
     }
 
-    .ch-tag {
-      font-size: 0.66rem;
-      color: #94a3b8;
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-
-    @media (max-width: 640px) {
-      .tv-chassis { padding: 10px 10px 18px 10px; }
-      .tv-stand-base { width: 200px; }
-      .top-bar { position: static; margin-bottom: 10px; width: 100%; }
-      .tv-wrapper { margin-top: 8px; }
+    /* En celulares o pantallas angostas se apila de forma compacta */
+    @media (max-width: 960px) {
+      .living-stage {
+        flex-direction: column;
+        gap: 12px;
+      }
+      .tv-wrapper {
+        width: 100% !important;
+      }
+      .remote-panel {
+        width: 100%;
+        max-height: none;
+      }
     }
   </style>
 </head>
@@ -409,93 +496,109 @@
     </button>
   </div>
 
-  <div class="tv-wrapper">
-    <div class="tv-chassis">
-      <div class="tv-screen">
-        <div class="tv-osd" id="tvOsd">
-          <div class="osd-ch-num" id="osdNum">CH 01</div>
-          <div class="osd-ch-name" id="osdName">Cargando...</div>
+  <div class="living-stage">
+    <!-- TELEVISOR LCD REDIMENSIONABLE -->
+    <div class="tv-wrapper" id="tvWrapper">
+      <div class="tv-chassis" id="tvChassis">
+        <div class="tv-screen" id="tvScreen">
+          <div class="tv-osd" id="tvOsd">
+            <div class="osd-ch-num" id="osdNum">CH 01</div>
+            <div class="osd-ch-name" id="osdName">Cargando...</div>
+          </div>
+
+          <div class="tv-off-overlay" id="tvOffOverlay">
+            <p style="letter-spacing: 2px; font-size: 0.9rem;">SIN SEÑAL / TV APAGADO</p>
+          </div>
+
+          <iframe 
+            id="tvPlayer"
+            src="" 
+            title="DeLorean TV Player"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            allowfullscreen>
+          </iframe>
         </div>
 
-        <div class="tv-off-overlay" id="tvOffOverlay">
-          <p style="letter-spacing: 2px; font-size: 0.9rem;">SIN SEÑAL / TV APAGADO</p>
+        <div class="tv-bottom-bar">
+          <div style="width: 16px;"></div>
+          <div class="tv-brand-logo">DELOREAN TV</div>
+          <div class="tv-status-led" id="tvLed" title="Estado de energía"></div>
         </div>
 
-        <iframe 
-          id="tvPlayer"
-          src="" 
-          title="DeLorean TV Player"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-          allowfullscreen>
-        </iframe>
+        <!-- Tirador para agrandar arrastrando con el mouse -->
+        <div class="resize-handle" id="resizeHandle" title="Arrastra para agrandar o achicar la TV">◢</div>
       </div>
 
-      <div class="tv-bottom-bar">
-        <div style="width: 20px;"></div>
-        <div class="tv-brand-logo">DELOREAN TV</div>
-        <div class="tv-status-led" id="tvLed" title="Estado de energía"></div>
-      </div>
+      <div class="tv-stand-neck"></div>
+      <div class="tv-stand-base"></div>
     </div>
 
-    <div class="tv-stand-neck"></div>
-    <div class="tv-stand-base"></div>
-  </div>
-
-  <div class="remote-panel">
-    <div class="remote-controls-top">
-      <div class="btn-group">
-        <button class="btn-power" onclick="togglePower()">⏻ Power</button>
-        <button class="btn-nav" onclick="prevChannel()">◀ CH -</button>
-        <button class="btn-nav" onclick="nextChannel()">CH + ▶</button>
+    <!-- CONTROL REMOTO SIEMPRE VISIBLE A UN COSTADO -->
+    <div class="remote-panel">
+      <div class="remote-top-actions">
+        <button class="btn-power" onclick="togglePower()" title="Encender/Apagar">⏻</button>
+        <button class="btn-nav" onclick="prevChannel()" title="Canal Anterior">◀ CH-</button>
+        <button class="btn-nav" onclick="nextChannel()" title="Canal Siguiente">CH+ ▶</button>
+        <button class="btn-nav" onclick="toggleFullScreen()" title="Pantalla Completa">⛶ Full</button>
       </div>
-      <div style="font-size: 0.85rem; color: #94a3b8;" id="currentStatusText">
+
+      <!-- Botón para activar sonido al instante (necesario por política de autoplay del navegador) -->
+      <button class="btn-unmute" id="unmuteBtn" onclick="enableAudio()">
+        🔇 Toca aquí para activar el sonido
+      </button>
+
+      <!-- Control deslizante de tamaño del TV -->
+      <div class="size-control-box">
+        <div class="size-label-row">
+          <span>📐 Tamaño de la TV</span>
+          <span id="sizePercentText">780px</span>
+        </div>
+        <input type="range" id="tvSizeSlider" min="420" max="1060" value="780" oninput="setTvSize(this.value)">
+      </div>
+
+      <div class="now-playing-bar" id="currentStatusText">
         Sintonizando...
       </div>
-    </div>
 
-    <div class="channel-grid" id="channelGrid"></div>
+      <!-- Grilla compacta de botones -->
+      <div class="channel-grid" id="channelGrid"></div>
+    </div>
   </div>
 
   <script>
-    /**
-     * GRILLA DELOREAN TV (Señales 1, 2, 3 y 4 por cadena)
-     */
     const channels = [
       // TVN (3 Señales)
-      { num: "01", name: "TVN ", type: "TV", videoId: "lJZvdyIbJqw" },
-      {num: "01", name: "TVN 2", type: "TV", videoId: "I2c583pAYPs" },
-      //{ num: "02", name: "TVN Señal 2 (24H)", type: "Noticias", channelId: "UCTXNz3gjAypWp3EhlIATEJQ" },
-      //{ num: "03", name: "TVN Señal 3 (NTV)", type: "Cultural", channelId: "UC3L3i9f_H6h-e9hQ0wK7P1w" },
+      { num: "01", name: "TVN Señal 1", channelId: "UCaVaCaiG6qRzDiJDuEGKOhQ" },
+      { num: "02", name: "TVN 24 Horas", channelId: "UCTXNz3gjAypWp3EhlIATEJQ" },
+      { num: "03", name: "TVN Señal 3 (NTV)", channelId: "UC3L3i9f_H6h-e9hQ0wK7P1w" },
 
       // MEGA (3 Señales)
-      //{ num: "04", name: "Mega Señal 1", type: "TV", channelId: "UCEpId-QgFQuZySRWyokok4Q" },
-      { num: "05", name: "Mega )", type: "Noticias", channelId: "UCkccyEbqhhM3uKOI6Shm-4Q" },
-      //{ num: "06", name: "Mega Señal 3 (Mega 2)", type: "Entret.", channelId: "UCw5v2yQ8A6zP-h9X0s3gQ2A" },
+      { num: "04", name: "Mega Señal 1", channelId: "UCEpId-QgFQuZySRWyokok4Q" },
+      { num: "05", name: "Meganoticias", channelId: "UCkccyEbqhhM3uKOI6Shm-4Q" },
+      { num: "06", name: "Mega 2", channelId: "UCw5v2yQ8A6zP-h9X0s3gQ2A" },
 
       // CANAL 13 (4 Señales)
-      //{ num: "07", name: "Canal 13 Señal 1", type: "TV", channelId: "UCd4D3LfXC_9MY2zSv_3gMgw" },
-      { num: "08", name: "Canal 13  (T13)", type: "Noticias", channelId: "UCsRnhjcUCR78Q3Ud6OXCTNg" },
-      //{ num: "09", name: "Canal 13 Señal 3 (13C)", type: "Cultura", channelId: "UC62f30f2C9s9tB7n6oX5k6w" },
-      //{ num: "10", name: "Canal 13 Señal 4 (REC)", type: "Retro", channelId: "UCu4X7l2S9K5w5z_n_7p2jQg" },
+      { num: "07", name: "Canal 13", channelId: "UCd4D3LfXC_9MY2zSv_3gMgw" },
+      { num: "08", name: "T13 En Vivo", channelId: "UCsRnhjcUCR78Q3Ud6OXCTNg" },
+      { num: "09", name: "13C Cultura", channelId: "UC62f30f2C9s9tB7n6oX5k6w" },
+      { num: "10", name: "REC TV", channelId: "UCu4X7l2S9K5w5z_n_7p2jQg" },
 
       // CHILEVISIÓN (2 Señales)
-      { num: "11", name: "Chilevisión", type: "TV", channelId: "UC8EdTmyUaFIfZvVttJ9lgIA" },
-      //{ num: "12", name: "CHV Señal 2 (Noticias)", type: "Noticias", channelId: "UCRsUoZYC1ULUspipMRnMhwg" },
+      { num: "11", name: "Chilevisión", channelId: "UC8EdTmyUaFIfZvVttJ9lgIA" },
+      { num: "12", name: "CHV Noticias", channelId: "UCRsUoZYC1ULUspipMRnMhwg" },
 
-      // RADIOS EN VIVO (4 Señales)
-      { num: "01", name: "CINE 1", type: "TV", videoId: "oR3zVZsUR5g" },
-        { num: "01", name: "CINE 2", type: "TV", videoId: "oxX_new26jw" },
-        { num: "01", name: "CINE 3", type: "TV", videoId: "fAmzU4ux-KI" },
-      { num: "01", name: "radio biio bio ", type: "TV", videoId: "RPUB6Al5ZdU" },
-      { num: "01", name: "radio carolina", type: "TV", videoId: "K-SYIw22kyg" },
-      { num: "01", name: "radio adn", type: "TV", videoId: "Fe6RUNG8g78" },
-      
-      //{ num: "01", name: "TVN Señal 1", type: "TV", videoId: "oR3zVZsUR5g" },
+      // RADIOS Y SEÑALES EXTRA
+      { num: "13", name: "BioBioTV", channelId: "UCuvM3c8rmdApmk-g22shZ7w" },
+      { num: "14", name: "Cooperativa", channelId: "UC13uQa4Eh2fKW2DuwGP25CA" },
+      { num: "15", name: "ADN Radio", channelId: "UCczkrBxg0bf6PyW103d9s-w" },
+      { num: "16", name: "Radio Carolina", channelId: "UC24i8V4w1t2V0h1w9C_G0jQ" },
+      { num: "17", name: "Señal Extra", videoId: "lJZvdyIbJqw" }
     ];
 
     let currentIndex = 0;
     let isTvOn = true;
     let isDayMode = false;
+    let isAudioUnlocked = false; // Inicia en mute=1 para garantizar autoplay inmediato al cargar
     let osdTimeout;
 
     const player = document.getElementById("tvPlayer");
@@ -507,6 +610,10 @@
     const offOverlay = document.getElementById("tvOffOverlay");
     const tvLed = document.getElementById("tvLed");
     const themeBtn = document.getElementById("themeToggleBtn");
+    const unmuteBtn = document.getElementById("unmuteBtn");
+    const tvWrapper = document.getElementById("tvWrapper");
+    const sizeSlider = document.getElementById("tvSizeSlider");
+    const sizePercentText = document.getElementById("sizePercentText");
 
     function initThemeByTime() {
       const hour = new Date().getHours();
@@ -539,11 +646,33 @@
         btn.innerHTML = `
           <span class="ch-badge">${ch.num}</span>
           <span class="ch-name" title="${ch.name}">${ch.name}</span>
-          <span class="ch-tag">${ch.type}</span>
         `;
-        btn.onclick = () => selectChannel(index);
+        btn.onclick = () => {
+          // Al hacer clic en un canal ya hubo interacción del usuario, desbloqueamos audio
+          if (!isAudioUnlocked) {
+            isAudioUnlocked = true;
+            updateUnmuteButton();
+          }
+          selectChannel(index);
+        };
         grid.appendChild(btn);
       });
+    }
+
+    function updateUnmuteButton() {
+      if (isAudioUnlocked) {
+        unmuteBtn.classList.add("unmuted");
+        unmuteBtn.innerHTML = "🔊 Sonido Activado";
+      } else {
+        unmuteBtn.classList.remove("unmuted");
+        unmuteBtn.innerHTML = "🔇 Toca aquí para activar el sonido";
+      }
+    }
+
+    function enableAudio() {
+      isAudioUnlocked = true;
+      updateUnmuteButton();
+      selectChannel(currentIndex);
     }
 
     function showOSD(ch) {
@@ -553,7 +682,7 @@
       clearTimeout(osdTimeout);
       osdTimeout = setTimeout(() => {
         osd.classList.remove("show");
-      }, 3500);
+      }, 3000);
     }
 
     function selectChannel(index) {
@@ -565,26 +694,27 @@
 
       currentIndex = index;
       const ch = channels[currentIndex];
-      
+      const muteParam = isAudioUnlocked ? "0" : "1";
+
       if (ch.videoId) {
-        player.src = `https://www.youtube.com/embed/${ch.videoId}?autoplay=1&rel=0&modestbranding=1`;
+        player.src = `https://www.youtube.com/embed/${ch.videoId}?autoplay=1&mute=${muteParam}&playsinline=1&rel=0&modestbranding=1`;
       } else {
-        player.src = `https://www.youtube.com/embed/live_stream?channel=${ch.channelId}&autoplay=1&rel=0&modestbranding=1`;
+        player.src = `https://www.youtube.com/embed/live_stream?channel=${ch.channelId}&autoplay=1&mute=${muteParam}&playsinline=1&rel=0&modestbranding=1`;
       }
 
-      statusText.textContent = `Viendo: CH ${ch.num} - ${ch.name}`;
+      statusText.textContent = `CH ${ch.num} • ${ch.name}`;
       showOSD(ch);
       renderButtons();
     }
 
     function nextChannel() {
-      const next = (currentIndex + 1) % channels.length;
-      selectChannel(next);
+      if (!isAudioUnlocked) { isAudioUnlocked = true; updateUnmuteButton(); }
+      selectChannel((currentIndex + 1) % channels.length);
     }
 
     function prevChannel() {
-      const prev = (currentIndex - 1 + channels.length) % channels.length;
-      selectChannel(prev);
+      if (!isAudioUnlocked) { isAudioUnlocked = true; updateUnmuteButton(); }
+      selectChannel((currentIndex - 1 + channels.length) % channels.length);
     }
 
     function togglePower() {
@@ -602,6 +732,42 @@
         renderButtons();
       }
     }
+
+    function toggleFullScreen() {
+      const screenEl = document.getElementById("tvScreen");
+      if (!document.fullscreenElement) {
+        screenEl.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Cambiar tamaño del televisor con el slider
+    function setTvSize(px) {
+      tvWrapper.style.width = px + "px";
+      sizePercentText.textContent = px + "px";
+      sizeSlider.value = px;
+    }
+
+    // Arrastrar esquina inferior derecha del marco TV para redimensionar libremente
+    const resizeHandle = document.getElementById("resizeHandle");
+    let isResizing = false;
+
+    resizeHandle.addEventListener("mousedown", (e) => {
+      isResizing = true;
+      e.preventDefault();
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isResizing) return;
+      const rect = tvWrapper.getBoundingClientRect();
+      const newWidth = Math.min(1080, Math.max(380, Math.round(e.clientX - rect.left)));
+      setTvSize(newWidth);
+    });
+
+    window.addEventListener("mouseup", () => {
+      isResizing = false;
+    });
 
     // Zapping con flechas del teclado
     document.addEventListener("keydown", (e) => {
