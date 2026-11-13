@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DeLorean TV - En Vivo</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     :root {
       --accent-cyan: #06b6d4;
@@ -30,7 +31,6 @@
       gap: 10px;
     }
 
-    /* TELEVISOR LCD OCUPANDO CASI TODA LA PANTALLA */
     .tv-chassis {
       flex: 1;
       height: 100%;
@@ -44,6 +44,7 @@
       min-width: 0;
     }
 
+    /* Marco de pantalla que recorta los bordes superior e inferior de YouTube */
     .tv-screen {
       position: relative;
       flex: 1;
@@ -53,11 +54,33 @@
       overflow: hidden;
     }
 
+    /* Capa transparente sobre el video para evitar hover de YouTube */
+    .tv-clean-shield {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background: transparent;
+    }
+
+    /* Recorte limpio arriba y abajo para ocultar título y barra roja */
     .tv-screen iframe {
+      position: absolute;
+      top: -62px;
+      left: -2%;
+      width: 104%;
+      height: calc(100% + 124px);
+      border: none;
+      display: block;
+      pointer-events: none;
+    }
+
+    .tv-screen video {
       width: 100%;
       height: 100%;
       border: none;
       display: block;
+      object-fit: contain;
+      background: #000;
     }
 
     .tv-off-overlay {
@@ -67,10 +90,14 @@
       display: none;
       align-items: center;
       justify-content: center;
-      color: #52525b;
+      flex-direction: column;
+      gap: 6px;
+      color: #71717a;
       font-size: 0.85rem;
-      letter-spacing: 2px;
+      letter-spacing: 1.5px;
       z-index: 5;
+      text-align: center;
+      padding: 16px;
     }
 
     .tv-off-overlay.active { display: flex; }
@@ -93,6 +120,29 @@
     .tv-osd.show { opacity: 1; }
     .osd-ch-num { font-size: 1rem; font-weight: 800; color: var(--accent-cyan); }
     .osd-ch-name { font-size: 0.8rem; color: #e4e4e7; }
+
+    /* Botón flotante de Pantalla Completa */
+    .tv-floating-fs {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 7;
+      background: rgba(9, 9, 11, 0.72);
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 5px 9px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      opacity: 0.65;
+      transition: all 0.2s ease;
+    }
+
+    .tv-floating-fs:hover {
+      opacity: 1;
+      border-color: var(--accent-cyan);
+      background: rgba(9, 9, 11, 0.95);
+    }
 
     .tv-bottom-bar {
       display: flex;
@@ -124,7 +174,6 @@
       box-shadow: 0 0 6px var(--led-off);
     }
 
-    /* CONTROL REMOTO COMPACTO CON BOTONES PEQUEÑOS */
     .remote-panel {
       width: 245px;
       height: 100%;
@@ -192,7 +241,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Grilla de canales con botones pequeños y compactos */
     .channel-grid {
       flex: 1;
       display: grid;
@@ -262,6 +310,10 @@
 
       <div class="tv-off-overlay" id="tvOffOverlay">SIN SEÑAL / TV APAGADO</div>
 
+      <div class="tv-clean-shield" id="tvShield" ondblclick="toggleFullScreen()"></div>
+
+      <button class="tv-floating-fs" onclick="toggleFullScreen()" title="Agrandar pantalla completa">⛶ Pantalla Completa</button>
+
       <iframe 
         id="tvPlayer"
         src="" 
@@ -269,6 +321,8 @@
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
         allowfullscreen>
       </iframe>
+
+      <video id="hlsPlayer" playsinline style="display: none;"></video>
     </div>
 
     <div class="tv-bottom-bar">
@@ -297,20 +351,25 @@
 
   <script>
     const channels = [
-  { num: "01", name: "TVN", channelId: "UCaVaCaiG6qRzDiJDuEGKOhQ" },
-      { num: "01", name: "CANAL 13", type: "TV", videoId: "EoXTa5HBm1M" },
-      { num: "01", name: "MEGA", type: "TV", videoId: "Y7wO-438C4" },
-      { num: "01", name: "CHV", type: "TV", videoId: "jnCW702_qfo" },
-      { num: "01", name: "SERIES", type: "TV", videoId: "fTi3aTD7JxM" },
-      { num: "01", name: "CINE", type: "TV", videoId: "oR3zVZsUR5g" },
+      { num: "01", name: "24 HORAS", channelId: "UCTXNz3gjAypWp3EhlIATEJQ" },
+      { num: "02", name: "TVN", channelId: "UCaVaCaiG6qRzDiJDuEGKOhQ" },
+      { num: "03", name: "CANAL 13", videoId: "EoXTa5HBm1M" },
+      { num: "04", name: "T13 VIVO", channelId: "UCsRnhjcUCR78Q3Ud6OXCTNg" },
+      { num: "05", name: "MEGANOTICIAS", channelId: "UCkccyEbqhhM3uKOI6Shm-4Q" },
+      { num: "06", name: "CHV", videoId: "jnCW702_qfo" },
+      { num: "07", name: "SERIES", videoId: "fTi3aTD7JxM" },
+      { num: "08", name: "CINE", videoId: "oR3zVZsUR5g" }
     ];
 
     let currentIndex = 0;
     let isTvOn = true;
     let isAudioUnlocked = false;
     let osdTimeout;
+    let hlsInstance = null;
 
-    const player = document.getElementById("tvPlayer");
+    const ytPlayer = document.getElementById("tvPlayer");
+    const hlsVideo = document.getElementById("hlsPlayer");
+    const tvShield = document.getElementById("tvShield");
     const grid = document.getElementById("channelGrid");
     const osd = document.getElementById("tvOsd");
     const osdNum = document.getElementById("osdNum");
@@ -338,16 +397,23 @@
       if (isAudioUnlocked) {
         unmuteBtn.classList.add("unmuted");
         unmuteBtn.innerHTML = "🔊 Sonido Activo";
+        hlsVideo.muted = false;
       } else {
         unmuteBtn.classList.remove("unmuted");
         unmuteBtn.innerHTML = "🔇 Activar Sonido";
+        hlsVideo.muted = true;
       }
     }
 
     function enableAudio() {
       isAudioUnlocked = true;
       updateUnmuteButton();
-      selectChannel(currentIndex);
+      if (hlsVideo.style.display === "block") {
+        hlsVideo.muted = false;
+        hlsVideo.play().catch(() => {});
+      } else {
+        selectChannel(currentIndex);
+      }
     }
 
     function showOSD(ch) {
@@ -355,24 +421,67 @@
       osdName.textContent = ch.name;
       osd.classList.add("show");
       clearTimeout(osdTimeout);
-      osdTimeout = setTimeout(() => osd.classList.remove("show"), 2800);
+      osdTimeout = setTimeout(() => osd.classList.remove("show"), 2500);
+    }
+
+    function stopHls() {
+      if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+      }
+      hlsVideo.pause();
+      hlsVideo.removeAttribute("src");
+      hlsVideo.style.display = "none";
+    }
+
+    function playHlsStream(url) {
+      ytPlayer.src = "";
+      ytPlayer.style.display = "none";
+      hlsVideo.style.display = "block";
+      hlsVideo.muted = !isAudioUnlocked;
+
+      if (Hls.isSupported()) {
+        if (hlsInstance) hlsInstance.destroy();
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(url);
+        hlsInstance.attachMedia(hlsVideo);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          hlsVideo.play().catch(() => {});
+        });
+        hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            offOverlay.innerHTML = "SEÑAL HLS NO DISPONIBLE";
+            offOverlay.classList.add("active");
+          }
+        });
+      } else if (hlsVideo.canPlayType("application/vnd.apple.mpegurl")) {
+        hlsVideo.src = url;
+        hlsVideo.play().catch(() => {});
+      }
     }
 
     function selectChannel(index) {
-      if (!isTvOn) {
-        isTvOn = true;
-        offOverlay.classList.remove("active");
-        tvLed.classList.remove("off");
-      }
+      isTvOn = true;
+      offOverlay.innerHTML = "SIN SEÑAL / TV APAGADO";
+      offOverlay.classList.remove("active");
+      tvLed.classList.remove("off");
+      tvShield.style.display = "block";
 
       currentIndex = index;
       const ch = channels[currentIndex];
       const muteParam = isAudioUnlocked ? "0" : "1";
 
-      if (ch.videoId) {
-        player.src = `https://www.youtube.com/embed/${ch.videoId}?autoplay=1&mute=${muteParam}&playsinline=1&rel=0&modestbranding=1`;
+      if (ch.hlsUrl) {
+        playHlsStream(ch.hlsUrl);
       } else {
-        player.src = `https://www.youtube.com/embed/live_stream?channel=${ch.channelId}&autoplay=1&mute=${muteParam}&playsinline=1&rel=0&modestbranding=1`;
+        stopHls();
+        ytPlayer.style.display = "block";
+        const cleanParams = `autoplay=1&mute=${muteParam}&controls=0&disablekb=1&iv_load_policy=3&fs=0&playsinline=1&rel=0&modestbranding=1`;
+        if (ch.videoId) {
+          ytPlayer.src = `https://www.youtube.com/embed/${ch.videoId}?${cleanParams}`;
+        } else {
+          ytPlayer.src = `https://www.youtube.com/embed/live_stream?channel=${ch.channelId}&${cleanParams}`;
+        }
       }
 
       statusText.textContent = `CH ${ch.num} • ${ch.name}`;
@@ -393,11 +502,12 @@
     function togglePower() {
       isTvOn = !isTvOn;
       if (isTvOn) {
-        offOverlay.classList.remove("active");
-        tvLed.classList.remove("off");
         selectChannel(currentIndex);
       } else {
-        player.src = "";
+        ytPlayer.src = "";
+        stopHls();
+        tvShield.style.display = "none";
+        offOverlay.innerHTML = "SIN SEÑAL / TV APAGADO";
         offOverlay.classList.add("active");
         tvLed.classList.add("off");
         osd.classList.remove("show");
